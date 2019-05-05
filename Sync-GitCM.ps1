@@ -248,3 +248,39 @@ Function Get-CIName
 	$CI = $CIs | where-object {$_.LocalizedDisplayName -eq $name}
 	$CI
 }
+function get-CIDiscoveryScript{
+	param(
+		$CI
+	)
+	begin
+	{
+		[XML]$XML = $CI.SDMPackageXML
+		$simpleSettings = $XML.DesiredConfigurationDigest.OperatingSystem.Settings.RootComplexSetting.SimpleSetting
+		foreach($simpleSetting in $simpleSettings)
+		{
+			$DiscoveryScript = 
+			try{
+			$simpleSetting.ScriptDiscoverySource.DiscoveryScriptBody.'#text'
+			}
+			catch
+			{
+				$DiscoveryScript = $false
+			}
+			
+		}
+	}
+	process
+	{
+		if($discoveryScript -ne $false)
+		{
+			$DiscoveryScript | out-file "$env:TEMP/DiscoveryScript.ps1" -Force
+			[System.Collections.ArrayList] $DiscoveryScript = get-content "$env:TEMP/DiscoveryScript.ps1"
+			$DiscoveryScript = Remove-CMScriptSigning -$scriptText $DiscoveryScript
+		}
+		
+	}
+	end
+	{
+		$DiscoveryScript
+	}
+}
