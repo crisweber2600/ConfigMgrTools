@@ -323,3 +323,25 @@ function get-CIRemediationScript
 		$RemediationScript
 	}
 }
+function Compare-Scripts
+{
+	param
+	(
+		$FirstScript,
+		$SecondScript
+	)
+	$firstScript | out-file "$env:TEMP\FirstScript.ps1" -force
+	$secondScript | out-file "$env:TEMP\SecondScript.ps1" -force
+	$FirstHash = (Get-fileHash "$env:TEMP\FirstScript.ps1").Hash
+	$SecondHash = (Get-fileHash "$env:TEMP\SecondScript.ps1").Hash
+	remove-item "$env:TEMP\FirstScript.ps1" -Force
+	remove-item "$env:TEMP\SecondScript.ps1" -Force
+	if($FirstHash -eq $SecondHash)
+	{
+		$output = $true
+	}
+	else{
+		$output = $false
+	}
+	$output
+}
