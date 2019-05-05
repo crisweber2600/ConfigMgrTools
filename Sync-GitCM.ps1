@@ -239,3 +239,12 @@ function get-cmwqlquery {
 	)
 	get-wmiobject -query $WQLQuery -namespace "root\sms\site_$SiteCode" -ComputerName $SMSServer -credential $Creds | foreach-object {$_.get(); $_}
 }
+Function Get-CIName
+{
+	param
+	($name,
+	$CIs
+	)
+	$CI = $CIs | where-object {$_.LocalizedDisplayName -eq $name}
+	$CI
+}
