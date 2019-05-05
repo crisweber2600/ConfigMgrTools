@@ -549,7 +549,89 @@ function Set-DiscoveryScriptFile
 	}
 	$output
 }
-
+function Set-RemediationScriptFile 
+{
+	param(
+		$CI,
+		$RemediationScriptFile
+	)
+	$output = $true
+	[XML] $XML = $CI.SDMPackageXML
+	
+	$counter = 0
+	$simpleSettings = XML.DesiredConfigurationDigest.OperatingSystem.Settings.RootComplexSetting.SimpleSetting
+	foreach($simpleSetting in $simpleSettings)
+	{
+		$DisplayName = $SimpleSetting.annotation.DisplayName.Text
+		if($DisplayName -eq "Script")
+		{
+			try{
+				$XML.DesiredConfigurationDigest.OperatingSystem.Settings.RootComplexSetting.SimpleSetting[$counter].ScriptDiscoverySource.RemediationScriptBody.'#text' = ([string]$RemediationScriptFile)
+			}
+			catch
+			{
+				try
+				{
+					$XML.DesiredConfigurationDigest.OperatingSystem.Settings.RootComplexSetting.SimpleSetting.ScriptDiscoverySource.RemediationScriptBody.'#text' = ([string]$RemediationScriptFile)
+				}
+				catch
+				{
+					try
+					{
+						#Create With Counter
+						$RemediationScriptBodyElement = $XML.CreateElement("RemediationScriptBody", $XML.DocumentElement.NamespaceURI)
+						$ScriptTypeAttribute = $XML.CreateAttribute("ScriptType")
+						$ScriptTypeAttribute.Value = "PowerShell"
+						$XMLText = $XML.CreateTextNode("")
+						$RemediationScriptBodyElement.AppendChild($XMLText) | out-null
+						$RemediationScriptBodyElement.Attributes.Append($ScriptTypeAttribute) | out-null
+						$XML.DesiredConfigurationDigest.OperatingSystem.Settings.RootComplexSetting.SimpleSetting.ScriptDiscoverySource.AppendChild($RemediationScriptBodyElement) | Out-Null
+						$XML.DesiredConfigurationDigest.OperatingSystem.Settings.RootComplexSetting.SimpleSetting[$counter].ScriptDiscoverySource.RemediationScriptBody."#text" = ([string]$RemediationScriptFile)
+						
+					}
+					catch
+					{
+						try{
+							#create without counter
+						$RemediationScriptBodyElement = $XML.CreateElement("RemediationScriptBody", $XML.DocumentElement.NamespaceURI)
+						$ScriptTypeAttribute = $XML.CreateAttribute("ScriptType")
+						$ScriptTypeAttribute.Value = "PowerShell"
+						$XMLText = $XML.CreateTextNode("")
+						$RemediationScriptBodyElement.AppendChild($XMLText) | out-null
+						$RemediationScriptBodyElement.Attributes.Append($ScriptTypeAttribute) | out-null
+						$XML.DesiredConfigurationDigest.OperatingSystem.Settings.RootComplexSetting.SimpleSetting.ScriptDiscoverySource.AppendChild($RemediationScriptBodyElement) | Out-Null
+						$XML.DesiredConfigurationDigest.OperatingSystem.Settings.RootComplexSetting.SimpleSetting.ScriptDiscoverySource.RemediationScriptBody."#text" = ([string]$RemediationScriptFile)
+							
+						}
+						catch
+						{
+						$output=$false
+					}
+				}
+			}
+			
+			
+		}
+	}
+	$Counter++
+}
+try
+{
+	$XML.Save("$env:TEMP\CIXML.XML")
+	$XMLString = get-content "$env:TEMP\cixml.xml" -raw
+	$CI.SDMPackageXML = $XMLString
+	remove-item "$env:TEMP\cixml.xml" -force
+}
+catch
+{
+	$output = $false
+}
+if($output)
+{
+	$Output = $CI
+}
+$output
+}
 set-GitPath
 Get-CIBranchFromGit -BranchName QA
 $Creds = get-credential
