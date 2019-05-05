@@ -258,15 +258,16 @@ function get-CIDiscoveryScript{
 		$simpleSettings = $XML.DesiredConfigurationDigest.OperatingSystem.Settings.RootComplexSetting.SimpleSetting
 		foreach($simpleSetting in $simpleSettings)
 		{
-			$DiscoveryScript = 
-			try{
-			$simpleSetting.ScriptDiscoverySource.DiscoveryScriptBody.'#text'
+			$DisplayName = $SimpleSettings.annotation.DisplayName.Text
+			if($DisplayName -eq "Script")
+		{	try{
+				$DiscoveryScript = $simpleSetting.ScriptDiscoverySource.DiscoveryScriptBody.'#text'
 			}
 			catch
 			{
 				$DiscoveryScript = $false
 			}
-			
+			}	
 		}
 	}
 	process
@@ -282,5 +283,43 @@ function get-CIDiscoveryScript{
 	end
 	{
 		$DiscoveryScript
+	}
+}
+function get-CIRemediationScript
+{
+	param(
+		$CI
+	)
+	begin
+	{
+		[XML]$XML = $CI.SDMPackageXML
+		$SimpleSettings = $XML.DesiredConfigurationDigest.OperatingSystem.Settings.RootComplexSetting.SimpleSetting
+		foreach($simpleSetting in $simpleSettings)
+		{
+			$DisplayName = $SimpleSettings.annotation.DisplayName.Text
+			if($DisplayName -eq "Script")
+			{
+				try
+				{
+					$RemediationScript = $simpleSetting.ScriptDiscoverySource.RemediationScriptBody.'#text'
+				}
+				catch
+				$RemediationScript = $false
+			}
+		}
+		
+	}
+	process
+	{
+		if($RemediationScript -ne $false)
+		{
+			$RemediationScript | out-file "$env:TEMP/RemediationScript.ps1" -force
+			[System.Collections.ArrayList] $RemediationScript = get-content "$env:TEMP/RemediationScript.ps1"
+			$RemediationScript = Remove-CMScriptSigning -ScriptText $RemediationScript
+		}
+	}
+	end
+	{
+		$RemediationScript
 	}
 }
