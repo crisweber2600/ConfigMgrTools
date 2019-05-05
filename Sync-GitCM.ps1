@@ -347,7 +347,7 @@ function Git-CIBranchFromGit
 	)
 	begin
 	{
-		$GitURL = "TODO: GithubURL"
+		$GitURL = "https://github.com/crisweber2600/ConfigurationItems.git"
 		$repoSetup = test-path $repoDirectory
 		$GitText = @()
 	}
@@ -374,14 +374,14 @@ function Git-CIBranchFromGit
 		$output
 	}
 }
-function Get-WFCI
+function Get-CMCI
 {
 	param(
 		$SiteCode,
 		$SMSServer,
 		$creds
 	)
-	$CIs = get-CMWQLQuery TODO: Finish This line
+	$CIs = get-CMWQLQuery -SiteCode $SiteCode -SMServer $SMSServer -credentials $Creds -WQLQuery 'Select * from SMS_ConfigurationItemLatest where CIType_ID IN (3,4,5) AND IsHidden = 0 AND IsExpired = 0'
 	$CIs
 }
 function get-cmwqlquery {
@@ -499,6 +499,57 @@ function Compare-Scripts
 	}
 	$output
 }
+function Set-DiscoveryScriptFile 
+{
+	param(
+		$CI,
+		$discoveryScriptFile
+	)
+	$output = $true
+	[XML] $XML = $CI.SDMPackageXML
+	$counter = 0
+	$SimpleSettings = $XML.DesiredConfigurationDigest.OperatingSystem.Settings.RootComplexSetting.SimpleSetting
+	foreach($SimpleSetting in $simpleSettings)
+	{
+		$DisplayName = $SimpleSetting.annotation.DisplayName.Text
+		if($DisplayName -eq "Script")
+		{
+			try
+			{
+				$XML.DesiredConfigurationDigest.OperatingSystem.Settings.RootComplexSetting.SimpleSetting[$counter].ScriptDiscoverySource.DiscoveryScriptBody."#text" =([string]$discoveryScriptFile)
+			}
+			catch
+			{
+				try
+				{
+					$XML.DesiredConfigurationDigest.OperatingSystem.Settings.RootComplexSetting.SimpleSetting.ScriptDiscoverySource.DiscoveryScriptBody."#text" =([string]$discoveryScriptFile)
+				}
+				catch
+				{
+					$output = $false
+				}
+			}
+		}
+		$counter++
+	}
+	try
+	{
+		$XML.Save("$env:TEMP\CIXML.xml")
+		$XMLString = get-content "$env:TEMP\cixml.xml" -raw
+		$CI.SDMPackageXML = $XMLString
+		Remove-Item "$env:TEMP\cixml.xml" -force
+	}
+	catch
+	{
+		$output = $false
+	}
+	if($output -ne $false)
+	{
+		$output = $CI
+	}
+	$output
+}
+
 set-GitPath
 Get-CIBranchFromGit -BranchName QA
 $Creds = get-credential
