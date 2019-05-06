@@ -632,14 +632,62 @@ if($output)
 }
 $output
 }
-set-GitPath
+function set-ci{
+	param(
+		$CI
+	)
+	begin
+	{
+		[XML]$XML = $CI.SDMPackageXML
+		[int]$version = $XML.DesiredConfigurationDigest.OperatingSystem.Version
+		$Version++
+		$XML.DesiredConfigurationDigest.OperatingSystem.Version = ([String]$version)
+		$XML.save("$env:TEMP\CIXML.xml")
+		$XMLString = get-content "$env:TEMP\CIXML.xml" -raw
+		$CI.SDMPackageXML = $XMLString
+		Remove-Item "$env:TEMP\cixml.xml" -force
+	}
+	process
+	{
+		$output = $CI.put()
+	}
+	end
+	{
+		$output
+	}
+}
+}
+Set-GitPath
 Get-CIBranchFromGit -BranchName QA
 $Creds = get-credential
 
 $CIName = "Example CI"
 $CIs = get-WFCI -SiteServer "CM1.theweberbot.com" -SiteCode "LAB" -Credentials $Creds
 $CI = get-ciname -CIs $CIs -name $CIName
+
 $DiscoveryScript = get-CIDiscoveryScript -CI $CI
-$DiscoveryScriptFileRaw = get-content "$CIName\DiscoveryScript.ps1"
-$DiscoveryScriptFile = Remove-CMScriptSigning -ScriptText $DiscoveryScriptFileRaw
-$DiscoveryScript
+$DiscoveryScriptFileRaw = get-content ".\$CIName\DiscoveryScript.ps1" -Raw
+$DiscoveryScriptFileContent = get-content ".\$CIName\DiscoveryScript.ps1"
+
+$DiscoveryScriptFile = Remove-CMScriptSigning -ScriptText $DiscoveryScriptFileContent
+$DiscoveryScriptMatch = Compare-Scripts -FirstScript $discoveryScript -SecondScript $discoveryScriptFile
+
+$RemediationScript = Get-CIRemediationScript -CI $CI
+$RemediationScriptFileRaw = Get-Content ".\$CIName\RemediationScript.ps1" -Raw
+$RemediationScriptContent = Get-Content ".\$CIName\RemediationScript.ps1"
+
+$RemediationScriptFile = Remove-CMScriptSigning -ScriptText $RemediationScriptContent
+
+$RemediationScriptMatch = Compare-Scripts -FirstScript $RemediationScript -SecondScript $RemediationScriptFile
+if($RemediationScriptMatch -eq $false -or $discoveryScriptMatch -eq $False)
+{
+	if($null -ne $CI)
+	{
+		$CI = set-discoveryScriptFile -CI $CI -DiscoveryScriptFile $DiscoveryScriptFileRaw
+		$CI = Set-RemediationScriptFile -CI $CI -RemediationScriptFile $RemediationScriptFileRaw
+		Set-CI -CI $CI
+	}
+	else{
+		write-error "CI $CIName Not Found"
+	}
+}
