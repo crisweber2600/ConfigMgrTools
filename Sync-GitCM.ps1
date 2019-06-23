@@ -259,19 +259,32 @@ function Get-GitErrors {
     }
 }
 function Git-CIBranchFromGit {
+    <#
+    .SYNOPSIS
+        Updates the local copy of GIT with the branch you specify.
+    .DESCRIPTION
+        CHecks to see if the local repo is setup.
+        If it is not setup then it clones the GIT Repo, Changes to the branch specified and pulls down the latest changes.
+        If the repo is setup it changes to the branch specified and pulls down the latest changes.
+        It checks for any errors and if there were no errors it outputs $True. If errors occured then it outputs $false.
+    .PARAMETER BranchName
+        The name of the branch that will be updated locally.
+    .PARAMETER RepoDirectory
+        The local path where the repo is setup or will be setup.
+    #>
     param(
         $BranchName,
         $RepoDirectory = "c:\temp\git"
     )
     begin {
-        $GitURL = "https://github.com/crisweber2600/ConfigurationItems.git"
+        $GitURL = "https://github.com/crisweber2600/ConfigurationItems.git" #TODO: Change to param
         $repoSetup = test-path $repoDirectory
         $GitText = @()
     }
     process {
         if ($repoSetup) {
             set-location $repoDirectory
-            $GitText += invoke-git checkout $branchName
+            $GitText += invoke-git checkout $branchName 
             $GitText += invoke-git pull origin $branchName
         }
         else {
@@ -308,8 +321,8 @@ function get-cmwqlquery {
     get-wmiobject -query $WQLQuery -namespace "root\sms\site_$SiteCode" -ComputerName $SMSServer -credential $Creds | foreach-object { $_.get(); $_ }
 }
 Function Get-CIName {
-    param
-    ($name,
+    param(
+        $name,
         $CIs
     )
     $CI = $CIs | where-object { $_.LocalizedDisplayName -eq $name }
@@ -337,8 +350,13 @@ function get-CIDiscoveryScript {
     process {
         if ($discoveryScript -ne $false) {
             $DiscoveryScript | out-file "$env:TEMP/DiscoveryScript.ps1" -Force
-            [System.Collections.ArrayList] $DiscoveryScript = get-content "$env:TEMP/DiscoveryScript.ps1"
-            $DiscoveryScript = Remove-CMScriptSigning -$scriptText $DiscoveryScript
+            try {
+                [System.Collections.ArrayList] $DiscoveryScript = get-content "$env:TEMP/DiscoveryScript.ps1"
+            }
+            catch {
+                $DiscoveryScript = Get-Content "$env:TEMP/DiscoveryScript.ps1"
+            }
+            $DiscoveryScript = Remove-CMScriptSigning -scriptText $DiscoveryScript
         }
 		
     }
@@ -536,7 +554,7 @@ Get-CIBranchFromGit -BranchName QA
 $Creds = get-credential
 
 $CIName = "Example CI"
-$CIs = get-WFCI -SiteServer "CM1.theweberbot.com" -SiteCode "LAB" -Credentials $Creds
+$CIs = get-CMCI -SiteServer "CM1.theweberbot.com" -SiteCode "LAB" -Credentials $Creds
 $CI = get-ciname -CIs $CIs -name $CIName
 
 $DiscoveryScript = get-CIDiscoveryScript -CI $CI
