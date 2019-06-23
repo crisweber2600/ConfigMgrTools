@@ -205,7 +205,13 @@ The string to remove blank lines from.
         $Text
     )
     begin {
-        [system.collections.arraylist] $Text = $text
+        try {
+            [system.collections.arraylist] $Text = $text
+
+        }
+        catch {
+            $text = $text #Not needed
+        }
         $output = @()
     }
     process {
