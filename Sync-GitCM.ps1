@@ -1,54 +1,4 @@
-Function set-gitpath {
-    <#
-.synopsis
-	Checks to see if GIT is in the system path
-.Description
-	If git is in the system path then return $true
-	if git is not in the system path then put it in the system path.
-if git is still not setup then return false
-.PARAMETER GitPath
-	The path of the directory that git is in.
-If GIT Path is not specifified then it will not specify a new git path.
-.Output
-Bool outputs true or false
-example
-set-get path -getpath c:\git\bin
-#checks to see if the git path is setup. and if it’s not then set it to c:\git\bin.
-#>
-    [cmdletbinding()]
-    param(
-        $GitPath
-    )
-    begin {
-        $windows_path = $env:path
-        $PathItems = $windows_path -split ‘;’
-        $GITPath = $PathItems | where-Object { $_ -like ‘*git*’ }
-        if ($GITPath.Count -ge 1) {
-            $setup = $true
-        }
-        else {
-            $setup = $false
-        }
-    }
-    Process {
-        if (!$Setup) {
-            $env:path += $gitPath
-            [Enviroment]::SetEnvironmentVariable(“Path”, $env:Path, [System.EnvironmentVariableTarget]::Machine)
-        }
-        $windows_path = $env:path
-        $PathItems = $windows_path -split ‘;’
-        $gitPath = $pathitems | where-Object { $_ -like ‘*git*’ }
-        if ($GitPath.Count -ge 1) {
-            $setup = $true
-        }
-        else {
-            $setup = $false
-        }
-    }
-    End {
-        $setup
-    }
-}
+#region Functions
 Function Invoke-Git {
     <#
     .SYNOPSIS
@@ -223,14 +173,14 @@ The string to remove encoded script block from
                     $lineNumber = $end.linenumber
                 }
                 $LineNumber = $lineNumber - 1 #Finds the line number that the signing block is on.
-                $text = @()
-                $counter = 0
-                while ($counter -lt $linenumber) {
-                    $text += $scriptText[$counter]
-                    $counter++
-                }
             }
-        } 
+            $text = @()
+            $counter = 0
+            while ($counter -lt $linenumber) {
+                $text += $scriptText[$counter]
+                $counter++
+            }
+        }         
         else {
             $text = $scriptText
         }
