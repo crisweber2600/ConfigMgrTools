@@ -145,9 +145,9 @@ Function Invoke-Git {
 function Remove-CMScriptSigning {
     <#
 .Synopsis 
-Removed the “# EncodedScript # Begin Configuration Manager encoded script block” block from text.
+Removed the "# EncodedScript # Begin Configuration Manager encoded script block” block from text.
 .Description
-In some scripts the “# EncodedScript # Begin Configuration Manager encoded script block” block is inserted.
+In some scripts the "# EncodedScript # Begin Configuration Manager encoded script block” block is inserted.
 The scripts in GIT won’t have the encoded script block.
 This script will remove the encoded script block.
 .Parameter Text
@@ -157,7 +157,7 @@ The string to remove encoded script block from
     [cmdletBinding()]
     param(
         $scriptText,
-        $Find = “# EncodedScript # Begin Configuration Manager encoded script block”
+        $Find = "# EncodedScript # Begin Configuration Manager encoded script block”
     )
     begin {
         $Ending = ScriptText | select-string $find
@@ -549,35 +549,93 @@ function set-ci {
     }
 }
 
-Set-GitPath
-Get-CIBranchFromGit -BranchName QA
-$Creds = get-credential
+function initialize-Git {
+    param(
+        $branchName
+    )
+    $GitSync = Get-CIBranchFromGit -BranchName $branchName
+    $creds = Get-Credential
+    $creds
+}
+function Sync-GitCM {
+    param(
+        $creds,
+        $CIName,
+        $CIs,
+        [bool]$LogOnly
+    )
+    
+$CI = Get-CIName -CIs $CIs -name $CIName
 
-$CIName = "Example CI"
-$CIs = get-CMCI -SiteServer "CM1.theweberbot.com" -SiteCode "LAB" -Credentials $Creds
-$CI = get-ciname -CIs $CIs -name $CIName
-
-$DiscoveryScript = get-CIDiscoveryScript -CI $CI
+$DiscoveryScript = Get-CIDiscoveryScript -CI $CI
 $DiscoveryScriptFileRaw = get-content ".\$CIName\DiscoveryScript.ps1" -Raw
 $DiscoveryScriptFileContent = get-content ".\$CIName\DiscoveryScript.ps1"
-
 $DiscoveryScriptFile = Remove-CMScriptSigning -ScriptText $DiscoveryScriptFileContent
 $DiscoveryScriptMatch = Compare-Scripts -FirstScript $discoveryScript -SecondScript $discoveryScriptFile
-
 $RemediationScript = Get-CIRemediationScript -CI $CI
 $RemediationScriptFileRaw = Get-Content ".\$CIName\RemediationScript.ps1" -Raw
 $RemediationScriptContent = Get-Content ".\$CIName\RemediationScript.ps1"
-
 $RemediationScriptFile = Remove-CMScriptSigning -ScriptText $RemediationScriptContent
-
 $RemediationScriptMatch = Compare-Scripts -FirstScript $RemediationScript -SecondScript $RemediationScriptFile
+    function Out-CILog {
+        [CmdletBinding()]
+        param (
+            $CI,
+            $DiscoveryScriptInfo,
+        $RemediationScriptInfo
+        )
+    
+        begin {
+        $properties = @{
+            CIName                 = $CI.LocalizedDisplayName
+            DiscoveryScriptInfo   = $DiscoveryScriptInfo
+            RemediationScriptInfo = $RemediationScriptInfo
+        }
+        }
+    
+        process {
+        
+            $Object = New-Object psobject -Property $properties
+            
+        }
+    
+        end {
+            $Object | ConvertTo-Csv -NoTypeInformation | Out-File $env:TEMP\CILog.csv -Append
+        }
+    }
 if ($RemediationScriptMatch -eq $false -or $discoveryScriptMatch -eq $False) {
-    if ($null -ne $CI) {
-        $CI = set-discoveryScriptFile -CI $CI -DiscoveryScriptFile $DiscoveryScriptFileRaw
-        $CI = Set-RemediationScriptFile -CI $CI -RemediationScriptFile $RemediationScriptFileRaw
-        Set-CI -CI $CI
-    }
-    else {
-        write-error "CI $CIName Not Found"
-    }
+        if ($null -ne $CI) {
+            if ($LogOnly) {
+                Out-CILog -CI $CI -DiscoveryScriptInfo $DiscoveryScriptMatch -RemediationScriptInfo $RemediationScriptMatch
+            }
+            else {
+                try {
+                    
+                    $CI = set-discoveryScriptFile -CI $CI -DiscoveryScriptFile $DiscoveryScriptFileRaw
+                    $CI = Set-RemediationScriptFile -CI $CI -RemediationScriptFile $RemediationScriptFileRaw
+                    Set-CI -CI $CI
+                    Out-CILog -CI $CI -DiscoveryScriptInfo "Successful" -RemediationScriptInfo "Successful"
+                }
+                catch {
+                    
+                    Out-CILog -CI $CI -DiscoveryScriptInfo "Error" -RemediationScriptInfo "Error"
+                }
+            
+            } 
+        }
+        else {
+            
+            Out-CILog -CI $CI -DiscoveryScriptInfo "Error" -RemediationScriptInfo "Error"
+        }
+}
+}
+$creds = initialize-Git -branchName "QA"
+
+$CILocation = "C:\temp\ConfigurationItems"
+$folders = Get-ChildItem $CILocation
+$CIs = get-CMCI -SiteServer "cmps1.contoso.com" -SiteCode "PS1" -Credentials $Creds
+foreach ($folder in $folders) {
+    $CIName = $folder.name
+    Write-Verbose "CIName: $CIName"
+    Sync-GitCM -creds $creds -CIName $CIName -CIs $CIs
 }
