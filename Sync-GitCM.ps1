@@ -258,7 +258,7 @@ function Get-GitErrors {
         $output
     }
 }
-function Git-CIBranchFromGit {
+function Get-CIBranchFromGit {
     <#
     .SYNOPSIS
         Updates the local copy of GIT with the branch you specify.
