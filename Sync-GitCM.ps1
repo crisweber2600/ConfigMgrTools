@@ -160,7 +160,7 @@ The string to remove encoded script block from
         $Find = "# EncodedScript # Begin Configuration Manager encoded script block"
     )
     begin {
-        $Ending = ScriptText | select-string $find
+        $Ending = $ScriptText | select-string $find
     }
     process {
         if ($ending.length -gt 0) {
@@ -274,7 +274,7 @@ function Get-CIBranchFromGit {
     #>
     param(
         $BranchName,
-        $RepoDirectory = "c:\temp\git"
+        $RepoDirectory = "C:\temp\ConfigurationItems"
     )
     begin {
         $GitURL = "https://github.com/crisweber2600/ConfigurationItems.git" #TODO: Change to param
@@ -291,10 +291,10 @@ function Get-CIBranchFromGit {
             $ParentDirectory = split-path -path $repoDirectory -parent
             #TODO:Check if parent DIR exists
             set-location $parentDirectory
-            $GitText += invoke-git clone $gitURL
+            $GitText += invoke-git clone $gitURL -ErrorAction SilentlyContinue
             set-location $repoDirectory
-            $GitText += invoke-git checkout $branchName
-            $GitText += invoke-git pull
+            $GitText += invoke-git checkout $branchName -ErrorAction SilentlyContinue
+            $GitText += invoke-git pull -ErrorAction SilentlyContinue
         }
         $output = get-GitErrors $GitText
     }
@@ -305,10 +305,10 @@ function Get-CIBranchFromGit {
 function Get-CMCI {
     param(
         $SiteCode,
-        $SMSServer,
+        $SiteServer,
         $creds
     )
-    $CIs = get-CMWQLQuery -SiteCode $SiteCode -SMServer $SMSServer -credentials $Creds -WQLQuery 'Select * from SMS_ConfigurationItemLatest where CIType_ID IN (3,4,5) AND IsHidden = 0 AND IsExpired = 0'
+    $CIs = get-CMWQLQuery -SiteCode $SiteCode -SMSServer $SiteServer -credentials $Creds -WQLQuery 'Select * from SMS_ConfigurationItemLatest where CIType_ID IN (3,4,5) AND IsHidden = 0 AND IsExpired = 0'
     $CIs
 }
 function get-cmwqlquery {
@@ -465,7 +465,7 @@ function Set-RemediationScriptFile {
     [XML] $XML = $CI.SDMPackageXML
 	
     $counter = 0
-    $simpleSettings = XML.DesiredConfigurationDigest.OperatingSystem.Settings.RootComplexSetting.SimpleSetting
+    $simpleSettings = $XML.DesiredConfigurationDigest.OperatingSystem.Settings.RootComplexSetting.SimpleSetting
     foreach ($simpleSetting in $simpleSettings) {
         $DisplayName = $SimpleSetting.annotation.DisplayName.Text
         if ($DisplayName -eq "Script") {
@@ -629,11 +629,11 @@ function Sync-GitCM {
         }
     }
 }
-$creds = initialize-Git -branchName "QA"
+#$creds = initialize-Git -branchName "QA"
 
 $CILocation = "C:\temp\ConfigurationItems"
 $folders = Get-ChildItem $CILocation
-$CIs = get-CMCI -SiteServer "cmps1.contoso.com" -SiteCode "PS1" -Credentials $Creds
+$CIs = get-CMCI -SiteServer "cmps01.contoso.com" -SiteCode "PS1" -Creds $Creds
 foreach ($folder in $folders) {
     $CIName = $folder.name
     Write-Verbose "CIName: $CIName"
