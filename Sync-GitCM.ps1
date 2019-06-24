@@ -284,8 +284,8 @@ function Get-CIBranchFromGit {
     process {
         if ($repoSetup) {
             set-location $repoDirectory
-            $GitText += invoke-git checkout $branchName 
-            $GitText += invoke-git pull origin $branchName
+            $GitText += invoke-git checkout $branchName -ErrorAction SilentlyContinue
+            $GitText += invoke-git pull origin $branchName -ErrorAction SilentlyContinue
         }
         else {
             $ParentDirectory = split-path -path $repoDirectory -parent
@@ -479,6 +479,8 @@ function Set-RemediationScriptFile {
                 catch {
                     try {
                         #Create With Counter
+                        
+                        [XML] $XML = $CI.SDMPackageXML
                         $RemediationScriptBodyElement = $XML.CreateElement("RemediationScriptBody", $XML.DocumentElement.NamespaceURI)
                         $ScriptTypeAttribute = $XML.CreateAttribute("ScriptType")
                         $ScriptTypeAttribute.Value = "PowerShell"
@@ -492,6 +494,8 @@ function Set-RemediationScriptFile {
                     catch {
                         try {
                             #create without counter
+                            
+                            [XML] $XML = $CI.SDMPackageXML
                             $RemediationScriptBodyElement = $XML.CreateElement("RemediationScriptBody", $XML.DocumentElement.NamespaceURI)
                             $ScriptTypeAttribute = $XML.CreateAttribute("ScriptType")
                             $ScriptTypeAttribute.Value = "PowerShell"
@@ -632,7 +636,7 @@ function Sync-GitCM {
 #$creds = initialize-Git -branchName "QA"
 
 $CILocation = "C:\temp\ConfigurationItems"
-$folders = Get-ChildItem $CILocation
+$folders = Get-ChildItem $CILocation -Directory
 $CIs = get-CMCI -SiteServer "cmps01.contoso.com" -SiteCode "PS1" -Creds $Creds
 foreach ($folder in $folders) {
     $CIName = $folder.name
