@@ -633,7 +633,7 @@ function Sync-GitCM {
         }
     }
 }
-#$creds = initialize-Git -branchName "QA"
+$creds = initialize-Git -branchName "QA"
 
 $CILocation = "C:\temp\ConfigurationItems"
 $folders = Get-ChildItem $CILocation -Directory
