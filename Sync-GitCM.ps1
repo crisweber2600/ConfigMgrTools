@@ -157,7 +157,7 @@ The string to remove encoded script block from
     [cmdletBinding()]
     param(
         $scriptText,
-        $Find = "# EncodedScript # Begin Configuration Manager encoded script block”
+        $Find = "# EncodedScript # Begin Configuration Manager encoded script block"
     )
     begin {
         $Ending = ScriptText | select-string $find
@@ -565,32 +565,32 @@ function Sync-GitCM {
         [bool]$LogOnly
     )
     
-$CI = Get-CIName -CIs $CIs -name $CIName
+    $CI = Get-CIName -CIs $CIs -name $CIName
 
-$DiscoveryScript = Get-CIDiscoveryScript -CI $CI
-$DiscoveryScriptFileRaw = get-content ".\$CIName\DiscoveryScript.ps1" -Raw
-$DiscoveryScriptFileContent = get-content ".\$CIName\DiscoveryScript.ps1"
-$DiscoveryScriptFile = Remove-CMScriptSigning -ScriptText $DiscoveryScriptFileContent
-$DiscoveryScriptMatch = Compare-Scripts -FirstScript $discoveryScript -SecondScript $discoveryScriptFile
-$RemediationScript = Get-CIRemediationScript -CI $CI
-$RemediationScriptFileRaw = Get-Content ".\$CIName\RemediationScript.ps1" -Raw
-$RemediationScriptContent = Get-Content ".\$CIName\RemediationScript.ps1"
-$RemediationScriptFile = Remove-CMScriptSigning -ScriptText $RemediationScriptContent
-$RemediationScriptMatch = Compare-Scripts -FirstScript $RemediationScript -SecondScript $RemediationScriptFile
+    $DiscoveryScript = Get-CIDiscoveryScript -CI $CI
+    $DiscoveryScriptFileRaw = get-content ".\$CIName\DiscoveryScript.ps1" -Raw
+    $DiscoveryScriptFileContent = get-content ".\$CIName\DiscoveryScript.ps1"
+    $DiscoveryScriptFile = Remove-CMScriptSigning -ScriptText $DiscoveryScriptFileContent
+    $DiscoveryScriptMatch = Compare-Scripts -FirstScript $discoveryScript -SecondScript $discoveryScriptFile
+    $RemediationScript = Get-CIRemediationScript -CI $CI
+    $RemediationScriptFileRaw = Get-Content ".\$CIName\RemediationScript.ps1" -Raw
+    $RemediationScriptContent = Get-Content ".\$CIName\RemediationScript.ps1"
+    $RemediationScriptFile = Remove-CMScriptSigning -ScriptText $RemediationScriptContent
+    $RemediationScriptMatch = Compare-Scripts -FirstScript $RemediationScript -SecondScript $RemediationScriptFile
     function Out-CILog {
         [CmdletBinding()]
         param (
             $CI,
             $DiscoveryScriptInfo,
-        $RemediationScriptInfo
+            $RemediationScriptInfo
         )
     
         begin {
-        $properties = @{
-            CIName                 = $CI.LocalizedDisplayName
-            DiscoveryScriptInfo   = $DiscoveryScriptInfo
-            RemediationScriptInfo = $RemediationScriptInfo
-        }
+            $properties = @{
+                CIName                = $CI.LocalizedDisplayName
+                DiscoveryScriptInfo   = $DiscoveryScriptInfo
+                RemediationScriptInfo = $RemediationScriptInfo
+            }
         }
     
         process {
@@ -603,7 +603,7 @@ $RemediationScriptMatch = Compare-Scripts -FirstScript $RemediationScript -Secon
             $Object | ConvertTo-Csv -NoTypeInformation | Out-File $env:TEMP\CILog.csv -Append
         }
     }
-if ($RemediationScriptMatch -eq $false -or $discoveryScriptMatch -eq $False) {
+    if ($RemediationScriptMatch -eq $false -or $discoveryScriptMatch -eq $False) {
         if ($null -ne $CI) {
             if ($LogOnly) {
                 Out-CILog -CI $CI -DiscoveryScriptInfo $DiscoveryScriptMatch -RemediationScriptInfo $RemediationScriptMatch
@@ -627,7 +627,7 @@ if ($RemediationScriptMatch -eq $false -or $discoveryScriptMatch -eq $False) {
             
             Out-CILog -CI $CI -DiscoveryScriptInfo "Error" -RemediationScriptInfo "Error"
         }
-}
+    }
 }
 $creds = initialize-Git -branchName "QA"
 
